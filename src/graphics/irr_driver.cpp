@@ -106,8 +106,10 @@
 
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
 #include <ge_vulkan_texture_descriptor.hpp>
+#endif
 #include <SDL_stdinc.h>
 #endif
 
@@ -671,6 +673,7 @@ begin:
 
     GE::setVideoDriver(m_device->getVideoDriver());
 
+#ifndef __EMSCRIPTEN__
     GE::GEVulkanDriver* vk = GE::getVKDriver();
     if (vk)
     {
@@ -693,6 +696,7 @@ begin:
             break;
         }
     }
+#endif
     // Assume sp is supported
     CentralVideoSettings::m_supports_sp = true;
     CVS->init();
@@ -1874,7 +1878,9 @@ void IrrDriver::setAmbientLight(const video::SColorf &light, bool force_SH_compu
 {
 #ifndef SERVER_ONLY
     video::SColorf color = light;
+#ifndef __EMSCRIPTEN__
     if (m_video_driver->getDriverType() != EDT_VULKAN)
+#endif
     {
         color.r = powf(color.r, 1.0f / 2.2f);
         color.g = powf(color.g, 1.0f / 2.2f);
@@ -2461,6 +2467,7 @@ scene::ISceneNode *IrrDriver::addLight(const core::vector3df &pos,
     else
     {
         scene::ILightSceneNode* light;
+#ifndef __EMSCRIPTEN__
         if (m_video_driver->getDriverType() == EDT_VULKAN && sun_)
         {
             light = m_scene_manager->addLightSceneNode(parent, pos,
@@ -2469,15 +2476,18 @@ scene::ISceneNode *IrrDriver::addLight(const core::vector3df &pos,
             light->setLightType(video::ELT_DIRECTIONAL);
         }
         else
+#endif
         {
             video::SColorf color(r, g, b, 1.0f);
             light = m_scene_manager->addLightSceneNode(parent, pos, color);
             light->setRadius(radius);
+#ifndef __EMSCRIPTEN__
             if (m_video_driver->getDriverType() == EDT_VULKAN)
             {
                 video::SLight& data = light->getLightData();
                 data.Attenuation.X = energy;
             }
+#endif
         }
         return light;
     }

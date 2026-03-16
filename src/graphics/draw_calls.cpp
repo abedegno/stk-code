@@ -229,7 +229,11 @@ void DrawCalls::prepareDrawCalls(scene::ICameraSceneNode *camnode)
     CPUParticleManager::getInstance()->generateAll();
     PROFILER_POP_CPU_MARKER();
 
-    // Add a 1 s timeout
+#ifndef __EMSCRIPTEN__
+    // WebGL 2 limits glClientWaitSync timeout to 0 (non-blocking only).
+    // The fence sync mechanism for triple-buffered instance data is
+    // unnecessary in the browser where GPU commands are effectively
+    // synchronous from the main thread.
     if (m_sync != 0)
     {
         PROFILER_PUSH_CPU_MARKER("- Sync Stall", 0xFF, 0x0, 0x0);
@@ -246,6 +250,7 @@ void DrawCalls::prepareDrawCalls(scene::ICameraSceneNode *camnode)
         m_sync = 0;
         PROFILER_POP_CPU_MARKER();
     }
+#endif
 
     PROFILER_PUSH_CPU_MARKER("- particle and text billboard upload", 0x3F,
         0x03, 0x61);

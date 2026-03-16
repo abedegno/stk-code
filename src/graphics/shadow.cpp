@@ -31,7 +31,9 @@
 #ifndef SERVER_ONLY
 
 #include <array>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_dynamic_spm_buffer.hpp>
+#endif
 #include <IMeshSceneNode.h>
 #include <IVideoDriver.h>
 #include <SMesh.h>
@@ -64,6 +66,7 @@ Shadow::Shadow(Material* shadow_mat, const AbstractKart& kart)
     {
         std::array<uint16_t, 6> indices = {{ 0, 1, 2, 0, 2, 3 }};
         scene::IMeshBuffer* buffer = NULL;
+#ifndef __EMSCRIPTEN__
         if (irr_driver->getVideoDriver()->getDriverType() == video::EDT_VULKAN)
         {
             buffer = new GE::GEVulkanDynamicSPMBuffer();
@@ -75,6 +78,7 @@ Shadow::Shadow(Material* shadow_mat, const AbstractKart& kart)
                 indices.size());
         }
         else
+#endif
         {
             buffer = new scene::SMeshBuffer();
             video::S3DVertex v;

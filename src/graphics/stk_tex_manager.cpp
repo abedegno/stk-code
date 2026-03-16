@@ -32,7 +32,9 @@
 #include <algorithm>
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
+#endif
 #include <ge_texture.hpp>
 #endif
 
@@ -41,7 +43,7 @@
 // ----------------------------------------------------------------------------
 STKTexManager::~STKTexManager()
 {
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     GE::GEVulkanDriver* gevd = GE::getVKDriver();
     if (gevd)
     {
@@ -52,7 +54,7 @@ STKTexManager::~STKTexManager()
 
     removeTexture(NULL/*texture*/, true/*remove_all*/);
 
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     if (gevd)
         gevd->setDisableWaitIdle(false);
 #endif
@@ -253,7 +255,7 @@ bool STKTexManager::hasTexture(const std::string& path)
 // ----------------------------------------------------------------------------
 void STKTexManager::reloadAllTextures(bool mesh_texture_only)
 {
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     GE::GEVulkanDriver* gevd = GE::getVKDriver();
     if (gevd)
     {
@@ -331,7 +333,7 @@ void STKTexManager::reloadAllTextures(bool mesh_texture_only)
             p.second->reload();
     }
 
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     if (gevd)
         gevd->setDisableWaitIdle(false);
 #endif
