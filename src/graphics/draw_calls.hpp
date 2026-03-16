@@ -64,7 +64,14 @@ public:
 
     void renderBoundingBoxes();
 
+#ifdef __EMSCRIPTEN__
+    // WebGL 2 limits glClientWaitSync timeout to 0 (non-blocking only).
+    // GPU commands are effectively synchronous in the browser, so the
+    // fence sync is unnecessary.
+    void setFenceSync() {}
+#else
     void setFenceSync() { m_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0); }
+#endif
 };
 
 #endif   // !SERVER_ONLY

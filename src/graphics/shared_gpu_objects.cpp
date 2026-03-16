@@ -168,6 +168,25 @@ void SharedGPUObjects::init()
     {
         initShadowVPMUBO();
         initLightingDataUBO();
+#ifdef __EMSCRIPTEN__
+        // WebGL 2 strictly requires ALL declared UBOs in a shader program
+        // to be bound before drawing, even if unused.  header.txt declares
+        // three UBO blocks (Matrices, LightingData, SPFogData) that are
+        // prepended to every shader — including 2D UI shaders that never
+        // reference their members.  The 3D renderer binds real data later;
+        // these initial bindings just satisfy WebGL 2's validation.
+        //
+        // Binding points:
+        //   0 = Matrices       (overwritten by sp_mat_ubo in 3D passes)
+        //   1 = LightingData
+        //   2 = SPFogData      (overwritten by sp_fog_ubo in SP::init())
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0,
+                         m_View_projection_matrices_ubo);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_lighting_data_ubo);
+        // Binding point 2 needs a valid buffer too — reuse the lighting
+        // buffer as a placeholder until SP::init() binds the real fog UBO.
+        glBindBufferBase(GL_UNIFORM_BUFFER, 2, m_lighting_data_ubo);
+#endif
     }
 
     m_has_been_initialised = true;

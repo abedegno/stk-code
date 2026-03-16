@@ -1,7 +1,12 @@
 #include "ge_material_manager.hpp"
 
 #include "ge_main.hpp"
+#ifdef __EMSCRIPTEN__
+#include "../source/Irrlicht/CNullDriver.h"
+using namespace irr;
+#else
 #include "ge_vulkan_driver.hpp"
+#endif
 
 #include "vector3d.h"
 

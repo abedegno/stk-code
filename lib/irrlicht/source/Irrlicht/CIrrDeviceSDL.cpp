@@ -24,7 +24,10 @@
 #include "ge_main.hpp"
 #include "glad/gl.h"
 #include "ge_vulkan_driver.hpp"
+#ifndef __EMSCRIPTEN__
 #include "ge_vulkan_scene_manager.hpp"
+#endif
+#include "CSceneManager.h"
 #include "MoltenVK.h"
 
 #include <SDL_vulkan.h>
@@ -224,9 +227,11 @@ CIrrDeviceSDL::~CIrrDeviceSDL()
 			es2->cleanUp();
 		}
 #endif
+#ifndef __EMSCRIPTEN__
 		GE::GEVulkanDriver* gevk = dynamic_cast<GE::GEVulkanDriver*>(VideoDriver);
 		if (gevk)
 			gevk->destroyVulkan();
+#endif
 		VideoDriver->drop();
 		VideoDriver = NULL;
 	}
@@ -345,6 +350,9 @@ bool versionCorrect(int major, int minor)
 // Used in OptionsScreenVideo for live fullscreen toggle for vulkan driver
 extern "C" void update_fullscreen_desktop(int val)
 {
+#ifdef __EMSCRIPTEN__
+	return;
+#else
 	GE::GEVulkanDriver* gevk = GE::getVKDriver();
 	if (!gevk || !GE::getGEConfig()->m_fullscreen_desktop)
 		return;
@@ -362,6 +370,7 @@ extern "C" void update_fullscreen_desktop(int val)
 		SDL_SetWindowSize(window, prev_width * 0.8f, prev_height * 0.8f);
 		SDL_RaiseWindow(window);
 	}
+#endif // !__EMSCRIPTEN__
 }
 
 
@@ -373,12 +382,14 @@ extern "C" void update_swap_interval(int swap_interval)
 	if (swap_interval > 1)
 		swap_interval = 1;
 
+#ifndef __EMSCRIPTEN__
 	GE::GEVulkanDriver* gevk = GE::getVKDriver();
 	if (gevk)
 	{
 		gevk->updateSwapInterval(swap_interval);
 		return;
 	}
+#endif
 
 	// Try adaptive vsync first if support
 	if (swap_interval > 0)
@@ -474,7 +485,9 @@ bool CIrrDeviceSDL::createWindow()
 			os::Printer::log( "Could not initialize display!" );
 			return false;
 		}
+#ifndef __EMSCRIPTEN__
 		update_swap_interval(CreationParams.SwapInterval);
+#endif
 	}
 	else
 	{
@@ -504,8 +517,10 @@ start:
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, CreationParams.Doublebuffer);
 	irr::video::useCoreContext = true;
 
+#ifndef __EMSCRIPTEN__
 	if (GLContextDebugBit)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
 
 	if (CreationParams.DriverType == video::EDT_OGLES2)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -1666,7 +1681,11 @@ void CIrrDeviceSDL::createGUIAndVulkanScene()
 	#endif
 
 	// create Scene manager
+#ifdef __EMSCRIPTEN__
+	SceneManager = new scene::CSceneManager(VideoDriver, FileSystem, CursorControl, 0, GUIEnvironment);
+#else
 	SceneManager = new GE::GEVulkanSceneManager(VideoDriver, FileSystem, CursorControl, GUIEnvironment);
+#endif
 
 	setEventReceiver(UserReceiver);
 }

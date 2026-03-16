@@ -26,7 +26,11 @@
 #include "guiengine/engine.hpp"
 #include <ge_main.hpp>
 #include <ge_gl_utils.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_features.hpp>
+#else
+#include <emscripten/html5.h>
+#endif
 
 using namespace GE;
 bool CentralVideoSettings::m_supports_sp = true;
@@ -75,12 +79,14 @@ void CentralVideoSettings::init()
             GE::getGEConfig()->m_disable_npot_texture =
                 GraphicsRestrictions::isDisabled(
                 GraphicsRestrictions::GR_NPOT_TEXTURES);
+#ifndef __EMSCRIPTEN__
             if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
             {
                 hasTextureCompression = GEVulkanFeatures::supportsS3TCBC3() ||
                     GEVulkanFeatures::supportsBPTCBC7() ||
                     GEVulkanFeatures::supportsASTC4x4();
             }
+#endif
             return;
         }
 
@@ -228,7 +234,7 @@ void CentralVideoSettings::init()
         m_supports_sp = isARBInstancedArraysUsable() &&
             isARBVertexType2101010RevUsable() && isARBSamplerObjectsUsable() &&
             isARBExplicitAttribLocationUsable();
-            
+
         hasTextureCompressionSRGB = true;
         hasBGRA = true;
         hasColorBufferFloat = true;
@@ -459,7 +465,16 @@ bool CentralVideoSettings::isTextureCompressionEnabled() const
 
 bool CentralVideoSettings::isDeferredEnabled() const
 {
+#ifdef __EMSCRIPTEN__
+    // WebGL 2 has strict feedback-loop detection that rejects draw calls
+    // when a texture is both attached to the active framebuffer and bound
+    // as a sampler input.  The deferred pipeline's multi-pass G-buffer
+    // approach triggers this.  Forward rendering with the SP shaders still
+    // gives much better visuals than the legacy fixed-function renderer.
+    return false;
+#else
     return UserConfigParams::m_dynamic_lights && !GraphicsRestrictions::isDisabled(GraphicsRestrictions::GR_ADVANCED_PIPELINE);
+#endif
 }
 
 bool CentralVideoSettings::supportsHardwareSkinning() const

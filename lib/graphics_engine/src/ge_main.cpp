@@ -2,7 +2,9 @@
 #include "ge_occlusion_culling.hpp"
 #include "ge_spm.hpp"
 #include "ge_spm_buffer.hpp"
+#ifndef __EMSCRIPTEN__
 #include "ge_vulkan_driver.hpp"
+#endif
 #include "mini_glm.hpp"
 
 #include "IMesh.h"
@@ -55,7 +57,11 @@ irr::video::IVideoDriver* getDriver()
 
 GE::GEVulkanDriver* getVKDriver()
 {
+#ifdef __EMSCRIPTEN__
+    return NULL;
+#else
     return dynamic_cast<GE::GEVulkanDriver*>(g_driver);
+#endif
 }
 
 GEConfig* getGEConfig()

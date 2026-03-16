@@ -42,6 +42,12 @@ SPTextureManager::SPTextureManager()
     {
         m_max_threaded_load_obj.store(2);
     }
+#ifdef __EMSCRIPTEN__
+    //some browsers limit the number of web workers
+    if (m_max_threaded_load_obj.load() > 8) {
+        m_max_threaded_load_obj.store(8);
+    }
+#endif
     m_max_threaded_load_obj.store(m_max_threaded_load_obj.load() + 1);
     for (unsigned i = 0; i < m_max_threaded_load_obj; i++)
     {
@@ -97,6 +103,14 @@ void SPTextureManager::checkForGLCommand(bool before_scene)
     {
         return;
     }
+#ifdef __EMSCRIPTEN__
+    // On Emscripten, never spin-wait for worker threads to submit GL commands.
+    // The main thread must not block because worker threads may need to proxy
+    // calls through it, causing a deadlock. Process whatever commands are
+    // available now and return; remaining textures will be uploaded in
+    // subsequent frames.
+    before_scene = false;
+#endif
     while (true)
     {
         std::unique_lock<std::mutex> ul(m_gl_cmd_mutex);
