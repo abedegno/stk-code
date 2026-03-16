@@ -124,11 +124,13 @@ InputManager::InputManager() : m_mode(BOOTSTRAP),
             SDL_GetError());
     }
 
+#ifndef __EMSCRIPTEN__
     if (SDL_InitSubSystem(SDL_INIT_HAPTIC) != 0)
     {
         Log::error("InputManager", "Failed to init SDL haptics: %s",
             SDL_GetError());
     }
+#endif
 #endif // SERVER_ONLY
 }
 
@@ -651,6 +653,7 @@ void InputManager::dispatchInput(Input::InputType type, int deviceID,
     // in menus, some keyboard keys are standard (before each player selected
     // their device). So if a key could not be mapped to any known binding,
     // fall back to check the defaults.
+#ifndef __EMSCRIPTEN__
     if (!action_found &&
             StateManager::get()->getGameState() != GUIEngine::GAME &&
             type == Input::IT_KEYBOARD && m_mode == MENU &&
@@ -667,7 +670,7 @@ void InputManager::dispatchInput(Input::InputType type, int deviceID,
 
         if (action != PA_BEFORE_FIRST)
             always_valid = true;
-        
+
         if (m_device_manager->getAssignMode() == NO_ASSIGN)
         {
             if      (button == IRR_KEY_UP)            action = PA_MENU_UP;
@@ -707,8 +710,57 @@ void InputManager::dispatchInput(Input::InputType type, int deviceID,
             if (always_valid && m_device_manager->getAssignMode() == ASSIGN)
                 player = StateManager::get()->getActivePlayer(PLAYER_ID_GAME_MASTER);
         }
-        
+
     }
+#else
+    // On Emscripten, always run in NO_ASSIGN mode (single-player browser).
+    // Simplified keyboard fallback: no ASSIGN/page-up/down/home/end handling.
+    if (!action_found &&
+            StateManager::get()->getGameState() != GUIEngine::GAME &&
+            type == Input::IT_KEYBOARD &&
+            m_mode == MENU && m_device_manager->getAssignMode() == NO_ASSIGN)
+    {
+        action = PA_BEFORE_FIRST;
+
+        if      (button == IRR_KEY_UP)            action = PA_MENU_UP;
+        else if (button == IRR_KEY_DOWN)          action = PA_MENU_DOWN;
+        else if (button == IRR_KEY_LEFT)          action = PA_MENU_LEFT;
+        else if (button == IRR_KEY_RIGHT)         action = PA_MENU_RIGHT;
+        else if (button == IRR_KEY_SPACE)         action = PA_MENU_SELECT;
+        else if (button == IRR_KEY_RETURN)        action = PA_MENU_SELECT;
+        else if (button == IRR_KEY_BUTTON_UP)     action = PA_MENU_DOWN;
+        else if (button == IRR_KEY_BUTTON_DOWN)   action = PA_MENU_UP;
+        else if (button == IRR_KEY_BUTTON_LEFT)   action = PA_MENU_LEFT;
+        else if (button == IRR_KEY_BUTTON_RIGHT)  action = PA_MENU_RIGHT;
+        else if (button == IRR_KEY_BUTTON_A)      action = PA_MENU_SELECT;
+        else if (button == IRR_KEY_TAB)
+        {
+            if (shift_mask)
+            {
+                action = PA_MENU_UP;
+            }
+            else
+            {
+                action = PA_MENU_DOWN;
+            }
+        }
+
+        if (button == IRR_KEY_RETURN || button == IRR_KEY_BUTTON_A)
+        {
+            if (GUIEngine::ModalDialog::isADialogActive() &&
+                !GUIEngine::ScreenKeyboard::isActive())
+            {
+                GUIEngine::ModalDialog::onEnterPressed();
+            }
+        }
+
+        if (action != PA_BEFORE_FIRST)
+        {
+            action_found = true;
+            player = NULL;
+        }
+    }
+#endif  // __EMSCRIPTEN__
 
     // do something with the key if it matches a binding
     if (action_found)
