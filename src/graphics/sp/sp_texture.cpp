@@ -36,10 +36,12 @@
 
 #if !defined(SERVER_ONLY)
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <squish.h>
 static_assert(squish::kColourClusterFit == (1 << 5), "Wrong header");
 static_assert(squish::kColourRangeFit == (1 << 6), "Wrong header");
 static_assert(squish::kColourIterativeClusterFit == (1 << 8), "Wrong header");
+#endif
 #endif
 
 #if !defined(SERVER_ONLY)
@@ -244,19 +246,18 @@ bool SPTexture::compressedTexImage2d(std::shared_ptr<video::IImage> texture,
     {
         format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
     }
-    glDeleteTextures(1, &m_texture_name);
-    glGenTextures(1, &m_texture_name);
     glBindTexture(GL_TEXTURE_2D, m_texture_name);
     uint8_t* compressed = (uint8_t*)texture->lock();
-    unsigned cur_mipmap_size = 0;
     for (unsigned i = 0; i < mipmap_sizes.size(); i++)
     {
-        cur_mipmap_size = mipmap_sizes[i].second;
+        unsigned cur_mipmap_size = mipmap_sizes[i].second;
         glCompressedTexImage2D(GL_TEXTURE_2D, i, format,
             mipmap_sizes[i].first.Width, mipmap_sizes[i].first.Height, 0,
             cur_mipmap_size, compressed);
         compressed += cur_mipmap_size;
     }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL,
+                    (GLint)mipmap_sizes.size() - 1);
     glBindTexture(GL_TEXTURE_2D, 0);
     m_width.store(mipmap_sizes[0].first.Width);
     m_height.store(mipmap_sizes[0].first.Height);
@@ -715,15 +716,17 @@ void SPTexture::generateHQMipmap(void* in,
 }   // generateHQMipmap
 
 // ============================================================================
+#ifndef __EMSCRIPTEN__
 extern "C" void squishCompressImage(uint8_t* rgba, int width, int height,
                                     int pitch, void* blocks, unsigned flags);
+#endif
 // ----------------------------------------------------------------------------
 std::vector<std::pair<core::dimension2du, unsigned> >
                SPTexture::compressTexture(std::shared_ptr<video::IImage>& image)
 {
     std::vector<std::pair<core::dimension2du, unsigned> > mipmap_sizes;
 
-#if !defined(SERVER_ONLY)
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     unsigned width = image->getDimension().Width;
     unsigned height = image->getDimension().Height;
     mipmap_sizes.emplace_back(core::dimension2du(width, height), 0);

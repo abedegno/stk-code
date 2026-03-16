@@ -39,8 +39,10 @@ class Material;
 using namespace irr;
 
 // ----------------------------------------------------------------------------
+#ifndef __EMSCRIPTEN__
 extern "C" void squishCompressImage(uint8_t* rgba, int width, int height,
                                     int pitch, void* blocks, unsigned flags);
+#endif
 
 namespace SP
 {
