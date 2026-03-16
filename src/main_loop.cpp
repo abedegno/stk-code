@@ -19,6 +19,10 @@
 
 #include "main_loop.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #ifdef MOBILE_STK
 #include "addons/addons_manager.hpp"
 #endif
@@ -399,10 +403,25 @@ void MainLoop::updateRace(int ticks, bool fast_forward)
  */
 void MainLoop::run()
 {
+#ifdef __EMSCRIPTEN__
+    // On Emscripten, run() is called once per frame (not in a loop).
+    // Initialize m_curr_time only on the first call so getLimitedDt()
+    // can measure the real inter-frame delta on subsequent calls.
+    static bool first_call = true;
+    if (first_call)
+    {
+        m_curr_time = std::chrono::steady_clock::now();
+        first_call = false;
+    }
+    // left_over_time must persist across calls to avoid losing
+    // fractional physics time each frame.
+    static double left_over_time = 0;
+#else
     m_curr_time = std::chrono::steady_clock::now();
     // DT keeps track of the leftover time, since the race update
     // happens in fixed timesteps
     double left_over_time = 0;
+#endif
 
 #ifdef WIN32
     HANDLE parent = 0;
@@ -417,7 +436,9 @@ void MainLoop::run()
     }
 #endif
 
+#ifndef __EMSCRIPTEN__
     while (!m_abort)
+#endif
     {
 #ifdef __SWITCH__
       // This feeds us messages (like when the Switch sleeps or requests an exit)
@@ -708,6 +729,7 @@ void MainLoop::run()
             }
         }
 
+#ifndef __EMSCRIPTEN__
         if (!UserConfigParams::m_benchmark)
         {
             TimePoint frame_end = std::chrono::steady_clock::now();
@@ -734,6 +756,7 @@ void MainLoop::run()
                 PROFILER_POP_CPU_MARKER();
             }
         }
+#endif // !__EMSCRIPTEN__
 
         PROFILER_POP_CPU_MARKER();   // MainLoop pop
         PROFILER_SYNC_FRAME();
