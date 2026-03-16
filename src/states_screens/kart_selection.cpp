@@ -49,7 +49,7 @@
 #include <IGUIEnvironment.h>
 #include <IGUIButton.h>
 
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
 #include <ge_main.hpp>
 #include <ge_vulkan_driver.hpp>
 #endif
@@ -331,11 +331,19 @@ void KartSelectionScreen::beforeAddingWidget()
     //I18N: kart group name
     FOR_GETTEXT_ONLY( _("Add-Ons") )
     //I18N: kart class name
+#ifndef __EMSCRIPTEN__
     FOR_GETTEXT_ONLY( _C("Kart class", "Light") )
     //I18N: kart class name
     FOR_GETTEXT_ONLY( _C("Kart class", "Medium") )
     //I18N: kart class name
     FOR_GETTEXT_ONLY( _C("Kart class", "Heavy") )
+#else
+    FOR_GETTEXT_ONLY( _("Light") )
+    //I18N: kart class name
+    FOR_GETTEXT_ONLY( _("Medium") )
+    //I18N: kart class name
+    FOR_GETTEXT_ONLY( _("Heavy") )
+#endif
 
 
     // Add other groups after
@@ -362,9 +370,17 @@ void KartSelectionScreen::beforeAddingWidget()
         {
             class_str[0] += 'A' - 'a';
         }
+#ifndef __EMSCRIPTEN__
         kart_class->addLabel(_C("Kart class", class_str.c_str()));
+#else
+        kart_class->addLabel(_(class_str.c_str()));
+#endif
     }
+#ifndef __EMSCRIPTEN__
     kart_class->addLabel(_C("Kart class", "All"));
+#else
+    kart_class->addLabel(_("All"));
+#endif
 }   // beforeAddingWidget
 
 // ----------------------------------------------------------------------------
@@ -381,7 +397,7 @@ void KartSelectionScreen::configureChooseKarts(bool enable)
 
 void KartSelectionScreen::init()
 {
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     GE::getGEConfig()->m_enable_draw_call_cache = true;
 #endif
     m_instance_ptr = this;
@@ -497,7 +513,7 @@ void KartSelectionScreen::init()
 
 void KartSelectionScreen::tearDown()
 {
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     GE::getGEConfig()->m_enable_draw_call_cache = false;
     GE::GEVulkanDriver* gevk = GE::getVKDriver();
     if (gevk)
@@ -1106,8 +1122,13 @@ void KartSelectionScreen::addMultiplayerMessage()
     {
         m_multiplayer_message = new BubbleWidget();
         m_multiplayer_message->m_properties[PROP_TEXT_ALIGN] = "center";
+#ifndef __EMSCRIPTEN__
         m_multiplayer_message->setText(_("Everyone:\n"
             "Press the 'Fire' or 'Select' button to join the game"));
+#else
+        m_multiplayer_message->setText(_("Everyone:\n"
+            "Press the 'Select' button to join the game"));
+#endif
         m_multiplayer_message->m_x = message_x;
         m_multiplayer_message->m_y = (int) (fullarea->m_y + fullarea->m_h * 0.3f);
         m_multiplayer_message->m_w = (int) (splitWidth * 0.6f);

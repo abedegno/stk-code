@@ -32,7 +32,9 @@
 #include <IGUIEnvironment.h>
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
+#endif
 #endif
 
 using namespace GUIEngine;
@@ -264,12 +266,14 @@ GUIEngine::EventPropagation CustomVideoSettingsDialog::processEvent(const std::s
             OptionsScreenVideo::getInstance()->updateBlurSlider();
             GE::GEScreenSpaceReflectionType prev_gssrt = GE::getGEConfig()->m_screen_space_reflection_type;
             OptionsScreenVideo::setSSR();
+#ifndef __EMSCRIPTEN__
             if (GE::getDriver()->getDriverType() == video::EDT_VULKAN)
             {
                 bool need_recreate_swapchain = GE::getGEConfig()->m_screen_space_reflection_type != prev_gssrt;
                 if (need_recreate_swapchain || pbr_changed || ibl_changed)
                     GE::getVKDriver()->updateDriver(need_recreate_swapchain, pbr_changed, ibl_changed);
             }
+#endif
             // sameRestart will have the same effect
             if (!(CVS->isGLSL() && pbr_changed))
             {

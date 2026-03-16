@@ -28,8 +28,10 @@
 #include "states_screens/dialogs/custom_camera_settings.hpp"
 
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
 #include <ge_vulkan_texture_descriptor.hpp>
+#endif
 #include <SDL_video.h>
 #include "../../lib/irrlicht/source/Irrlicht/CIrrDeviceSDL.h"
 
@@ -117,8 +119,12 @@ void OptionsScreenDisplay::init()
     assert( rememberWinposText != NULL );
 #endif
 
-    bool is_vulkan_fullscreen_desktop = GE::getGEConfig()->m_fullscreen_desktop &&
-        GE::getDriver()->getDriverType() == video::EDT_VULKAN;
+    bool is_vulkan_fullscreen_desktop = false;
+#ifndef __EMSCRIPTEN__
+    is_vulkan_fullscreen_desktop =
+        GE::getDriver()->getDriverType() == video::EDT_VULKAN &&
+        GE::getGEConfig()->m_fullscreen_desktop;
+#endif
 
     configResolutionsList();
 
@@ -184,7 +190,11 @@ void OptionsScreenDisplay::configResolutionsList()
     if (res == NULL)
         return;
 
-    bool is_fullscreen_desktop = GE::getGEConfig()->m_fullscreen_desktop;
+    bool is_fullscreen_desktop = false;
+#ifndef __EMSCRIPTEN__
+    is_fullscreen_desktop =
+        GE::getGEConfig()->m_fullscreen_desktop;
+#endif
 
     res->clearItems();
 
@@ -430,6 +440,7 @@ void OptionsScreenDisplay::eventCallback(Widget* widget, const std::string& name
         CheckBoxWidget* rememberWinpos = getWidget<CheckBoxWidget>("rememberWinpos");
 
         rememberWinpos->setActive(!fullscreen->getState());
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
         GE::GEVulkanDriver* gevk = GE::getVKDriver();
         if (gevk && GE::getGEConfig()->m_fullscreen_desktop)
         {
@@ -439,6 +450,9 @@ void OptionsScreenDisplay::eventCallback(Widget* widget, const std::string& name
         }
         else
             updateResolutionsList();
+#elif !defined(SERVER_ONLY)
+        updateResolutionsList();
+#endif
     } // fullscreen
     else if (name == "camera_preset")
     {

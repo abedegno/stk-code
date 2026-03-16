@@ -34,8 +34,10 @@
 
 
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
 #include <ge_vulkan_texture_descriptor.hpp>
+#endif
 
 
 #include <IrrlichtDevice.h>
@@ -48,6 +50,7 @@ void OptionsScreenVideo::updateImageQuality(bool force_reload_texture)
 {
     core::dimension2du prev_max_size = irr_driver->getVideoDriver()
         ->getDriverAttributes().getAttributeAsDimension2d("MAX_TEXTURE_SIZE");
+#ifndef __EMSCRIPTEN__
     GE::GEVulkanTextureDescriptor* td = NULL;
     if (GE::getVKDriver())
         td = GE::getVKDriver()->getMeshTextureDescriptor();
@@ -59,6 +62,7 @@ void OptionsScreenVideo::updateImageQuality(bool force_reload_texture)
         if (UserConfigParams::m_anisotropic == 16)
             td->setSamplerUse(GE::GVS_3D_MESH_MIPMAP_16);
     }
+#endif
 
     irr_driver->setMaxTextureSize();
     SP::setMaxTextureSize();
@@ -193,9 +197,17 @@ void OptionsScreenVideo::init()
 
     if (scale_rtts->isActivated())
     {
-        scale_rtts->setActive(!in_game || GE::getDriver()->getDriverType() == video::EDT_VULKAN);
+        scale_rtts->setActive(!in_game
+#ifndef __EMSCRIPTEN__
+            || GE::getDriver()->getDriverType() == video::EDT_VULKAN
+#endif
+        );
         OptionsCommon::updatePauseTooltip(scale_rtts,
-            in_game && GE::getDriver()->getDriverType() != video::EDT_VULKAN);
+            in_game
+#ifndef __EMSCRIPTEN__
+            && GE::getDriver()->getDriverType() != video::EDT_VULKAN
+#endif
+        );
     }
 
     getWidget<ButtonWidget>("benchmarkCurrent")->setActive(!in_game);
@@ -273,8 +285,11 @@ void OptionsScreenVideo::updateBlurSlider()
 // --------------------------------------------------------------------------------------------
 void OptionsScreenVideo::updateScaleRTTsSlider()
 {
-    bool rtts_on = (UserConfigParams::m_dynamic_lights && CVS->isGLSL()) ||
-        GE::getDriver()->getDriverType() == video::EDT_VULKAN;
+    bool rtts_on = (UserConfigParams::m_dynamic_lights && CVS->isGLSL())
+#ifndef __EMSCRIPTEN__
+        || GE::getDriver()->getDriverType() == video::EDT_VULKAN
+#endif
+        ;
 
     GUIEngine::SpinnerWidget* rtts_slider = getWidget<GUIEngine::SpinnerWidget>("scale_rtts");
     assert( rtts_slider != NULL );
@@ -446,8 +461,11 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
 
         // Same with Render resolution slider
         getWidget<GUIEngine::SpinnerWidget>("scale_rtts")->
-            setActive(UserConfigParams::m_dynamic_lights ||
-            GE::getDriver()->getDriverType() == video::EDT_VULKAN);
+            setActive(UserConfigParams::m_dynamic_lights
+#ifndef __EMSCRIPTEN__
+            || GE::getDriver()->getDriverType() == video::EDT_VULKAN
+#endif
+        );
 
         applyGFXPreset(level);
         updateImageQuality(false /* force reload textures */);
@@ -504,12 +522,14 @@ void OptionsScreenVideo::eventCallback(Widget* widget, const std::string& name,
 
         UserConfigParams::m_scale_rtts_factor = scale_rtts_presets[level].value;
 
+#ifndef __EMSCRIPTEN__
         GE::GEVulkanDriver* gevk = GE::getVKDriver();
         if (gevk && GE::getGEConfig()->m_render_scale != UserConfigParams::m_scale_rtts_factor)
         {
             GE::getGEConfig()->m_render_scale = UserConfigParams::m_scale_rtts_factor;
             gevk->updateDriver();
         }
+#endif
         updateScaleRTTsSlider();
     } // scale_rtts
     else if (name == "benchmarkCurrent")

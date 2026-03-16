@@ -55,7 +55,9 @@
 
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
+#endif
 #endif
 
 using namespace GUIEngine;
@@ -368,9 +370,14 @@ GUIEngine::EventPropagation
         }
         else if (selection == "help")
         {
+#ifndef __EMSCRIPTEN__
             GE::GEVulkanDriver* vk_pbr_toggle = m_vk_pbr_toggle;
+#else
+            void* vk_pbr_toggle = nullptr;
+#endif
             dismiss();
 #ifndef SERVER_ONLY
+#ifndef __EMSCRIPTEN__
             if (vk_pbr_toggle)
             {
                 UserConfigParams::m_dynamic_lights = !UserConfigParams::m_dynamic_lights;
@@ -378,6 +385,7 @@ GUIEngine::EventPropagation
                 vk_pbr_toggle->updateDriver(false/*scale_changed*/, true/*pbr_changed*/);
             }
             else
+#endif
             {
                 HelpScreen1::getInstance()->push();
             }
@@ -463,7 +471,7 @@ void RacePausedDialog::beforeAddingWidgets()
         index = choice_ribbon->findItemNamed("help");
         if (index != -1)
         {
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
             m_vk_pbr_toggle = GE::getVKDriver();
             if (m_vk_pbr_toggle)
             {
@@ -474,6 +482,8 @@ void RacePausedDialog::beforeAddingWidgets()
             }
             else
                 choice_ribbon->setItemVisible(index, false);
+#elif !defined(SERVER_ONLY)
+            choice_ribbon->setItemVisible(index, false);
 #endif
         }
         index = choice_ribbon->findItemNamed("options");
