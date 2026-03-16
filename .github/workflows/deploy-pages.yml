@@ -1,0 +1,86 @@
+name: Deploy Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      game_release:
+        description: 'Release tag containing game assets (leave empty for latest)'
+        required: false
+  push:
+    branches: [main, feature/emscripten-support]
+    paths:
+      - "emscripten/web/**"
+      - ".github/workflows/deploy-pages.yml"
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Download game WASM + assets from GitHub Release ──
+      - name: Download game from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.game_release }}"
+          if [ -z "$TAG" ]; then
+            # Find latest release containing game assets
+            for t in $(gh release list --limit 10 --json tagName -q '.[].tagName'); do
+              if gh release view "$t" --json assets -q '.assets[].name' | grep -q 'supertuxkart\.js'; then
+                TAG="$t"
+                break
+              fi
+            done
+          fi
+
+          mkdir -p _site/game
+          if [ -n "$TAG" ] && [ "$TAG" != "null" ]; then
+            echo "Downloading game from release $TAG..."
+            # Download WASM binary and JS
+            gh release download "$TAG" -p "supertuxkart.js" -p "supertuxkart.wasm" \
+              -p "supertuxkart.worker.js" -D _site/game 2>/dev/null || true
+
+            # Download asset pack manifests and chunks
+            gh release download "$TAG" -p "data_*.tar.zst.*" -D _site/game 2>/dev/null || true
+
+            echo "Game files downloaded ($(ls _site/game/ | wc -l) files)"
+            ls -lh _site/game/
+          else
+            echo "::warning::No release with game files found — deploying web shell only"
+          fi
+
+      # ── Assemble site ──
+      - name: Build site
+        run: |
+          # Copy web runtime files
+          cp emscripten/web/index.html _site/
+          cp emscripten/web/script.js _site/
+          cp emscripten/web/coi-serviceworker.js _site/
+
+          echo "Site contents:"
+          find _site -type f | head -30
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
