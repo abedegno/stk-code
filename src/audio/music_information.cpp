@@ -192,11 +192,15 @@ void MusicInformation::startMusic()
         return;
     
     std::string normal_ext = StringUtils::getExtension(m_normal_filename);
+#ifndef __EMSCRIPTEN__
     if (normal_ext != "ogg"
 #ifdef HAVE_OPUS
         && normal_ext != "opus"
 #endif
        )
+#else
+    if (normal_ext != "ogg" && normal_ext != "opus")
+#endif
     {
         Log::warn("MusicInformation", "Music file %s is not found or file "
                   "format is not recognized.\n", m_normal_filename.c_str());
@@ -234,11 +238,15 @@ void MusicInformation::startMusic()
         return;
     
     std::string fast_ext = StringUtils::getExtension(m_fast_filename);
+#ifndef __EMSCRIPTEN__
     if (fast_ext != "ogg"
 #ifdef HAVE_OPUS
         && fast_ext != "opus"
 #endif
        )
+#else
+    if (fast_ext != "ogg" && fast_ext != "opus")
+#endif
     {
         Log::warn("MusicInformation",
                   "Music file %s format not recognized, fast music is ignored",
