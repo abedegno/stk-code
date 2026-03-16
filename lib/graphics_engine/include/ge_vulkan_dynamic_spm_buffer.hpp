@@ -32,7 +32,9 @@ public:
     virtual irr::scene::E_HARDWARE_MAPPING getHardwareMappingHint_Index() const
                                              { return irr::scene::EHM_STREAM; }
     // ------------------------------------------------------------------------
+#ifndef __EMSCRIPTEN__
     virtual void bindVertexIndexBuffer(VkCommandBuffer cmd)                  {}
+#endif
     // ------------------------------------------------------------------------
     virtual void createVertexIndexBuffer()                                   {}
     // ------------------------------------------------------------------------
@@ -40,7 +42,9 @@ public:
     // ------------------------------------------------------------------------
     void updateVertexIndexBuffer(int buffer_index);
     // ------------------------------------------------------------------------
+#ifndef __EMSCRIPTEN__
     void drawDynamicVertexIndexBuffer(VkCommandBuffer cmd, int buffer_index);
+#endif
     // ------------------------------------------------------------------------
     void setDirtyOffset(irr::u32 offset,
           irr::scene::E_BUFFER_TYPE buffer = irr::scene::EBT_VERTEX_AND_INDEX);

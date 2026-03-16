@@ -12,7 +12,9 @@ int _fltused = 0;
 
 #include "ge_compressor_bptc_bc7.hpp"
 #include "ge_main.hpp"
+#ifndef __EMSCRIPTEN__
 #include "ge_vulkan_features.hpp"
+#endif
 
 #ifdef BC7_ISPC
 #include <bc7e_ispc.h>

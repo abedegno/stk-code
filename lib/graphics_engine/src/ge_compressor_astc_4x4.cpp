@@ -1,8 +1,10 @@
 #include "ge_compressor_astc_4x4.hpp"
 
 #include "ge_main.hpp"
+#ifndef __EMSCRIPTEN__
 #include "ge_vulkan_command_loader.hpp"
 #include "ge_vulkan_features.hpp"
+#endif
 
 #include <algorithm>
 #include <cassert>

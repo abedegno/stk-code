@@ -6,8 +6,10 @@
 #include <vector>
 #include "IMeshBuffer.h"
 
+#ifndef __EMSCRIPTEN__
 #include "ge_vma.hpp"
 #include "vulkan_wrapper.h"
+#endif
 
 namespace GE
 {
@@ -29,9 +31,11 @@ private:
 
     size_t m_skinning_vbo_offset;
 
+#ifndef __EMSCRIPTEN__
     VkBuffer m_buffer;
 
     VmaAllocation m_memory;
+#endif
 
     bool m_has_skinning;
 public:
@@ -41,12 +45,19 @@ public:
         m_vbo_offset = 0;
         m_ibo_offset = 0;
         m_skinning_vbo_offset = 0;
+#ifndef __EMSCRIPTEN__
         m_buffer = VK_NULL_HANDLE;
         m_memory = VK_NULL_HANDLE;
+#endif
         m_has_skinning = false;
     }
     // ------------------------------------------------------------------------
-    ~GESPMBuffer()                              { destroyVertexIndexBuffer(); }
+    ~GESPMBuffer()
+    {
+#ifndef __EMSCRIPTEN__
+        destroyVertexIndexBuffer();
+#endif
+    }
     // ------------------------------------------------------------------------
     virtual const irr::video::SMaterial& getMaterial() const
                                                          { return m_material; }
@@ -178,6 +189,7 @@ public:
     // ------------------------------------------------------------------------
     void setHasSkinning(bool val)                     { m_has_skinning = val; }
     // ------------------------------------------------------------------------
+#ifndef __EMSCRIPTEN__
     virtual void bindVertexIndexBuffer(VkCommandBuffer cmd)
     {
         VkBuffer buffer = getVkBuffer();
@@ -196,6 +208,7 @@ public:
         vkCmdBindIndexBuffer(cmd, buffer, getIBOOffset(),
             VK_INDEX_TYPE_UINT16);
     }
+#endif
     // ------------------------------------------------------------------------
     virtual void createVertexIndexBuffer();
     // ------------------------------------------------------------------------
@@ -206,7 +219,9 @@ public:
     // ------------------------------------------------------------------------
     std::vector<irr::u16>& getIndicesVector()             { return m_indices; }
     // ------------------------------------------------------------------------
+#ifndef __EMSCRIPTEN__
     virtual VkBuffer getVkBuffer() const                   { return m_buffer; }
+#endif
 };
 
 } // end namespace GE

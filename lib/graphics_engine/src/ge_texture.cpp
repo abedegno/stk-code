@@ -1,7 +1,9 @@
 #include "ge_main.hpp"
 #include "ge_dx9_texture.hpp"
 #include "ge_gl_texture.hpp"
+#ifndef __EMSCRIPTEN__
 #include "ge_vulkan_texture.hpp"
+#endif
 #include "ge_texture.hpp"
 
 #include <IFileSystem.h>
@@ -103,8 +105,10 @@ irr::video::ITexture* createTexture(const std::string& path,
     case video::EDT_DIRECT3D9:
         return new GEDX9Texture(path, image_mani);
 #endif
+#ifndef __EMSCRIPTEN__
     case video::EDT_VULKAN:
         return new GEVulkanTexture(path, image_mani);
+#endif
     default:
         return NULL;
     }
@@ -123,8 +127,10 @@ irr::video::ITexture* createTexture(video::IImage* img,
     case video::EDT_DIRECT3D9:
         return new GEDX9Texture(img, name);
 #endif
+#ifndef __EMSCRIPTEN__
     case video::EDT_VULKAN:
         return new GEVulkanTexture(img, name);
+#endif
     default:
         return NULL;
     }
@@ -143,8 +149,10 @@ irr::video::ITexture* createFontTexture(const std::string& name,
     case video::EDT_DIRECT3D9:
         return new GEDX9Texture(name, size);
 #endif
+#ifndef __EMSCRIPTEN__
     case video::EDT_VULKAN:
         return new GEVulkanTexture(name, size, single_channel);
+#endif
     default:
         return NULL;
     }
