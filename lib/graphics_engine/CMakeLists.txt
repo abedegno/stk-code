@@ -72,38 +72,45 @@ set(GE_SOURCES
     src/ge_material_manager.cpp
     src/ge_occlusion_culling.cpp
     src/ge_texture.cpp
-    src/ge_vma.cpp
-    src/ge_vulkan_2d_renderer.cpp
-    src/ge_vulkan_array_texture.cpp
-    src/ge_vulkan_animated_mesh_scene_node.cpp
-    src/ge_vulkan_attachment_texture.cpp
-    src/ge_vulkan_billboard_buffer.cpp
-    src/ge_vulkan_camera_scene_node.cpp
-    src/ge_vulkan_command_loader.cpp
-    src/ge_vulkan_deferred_fbo.cpp
-    src/ge_vulkan_driver.cpp
-    src/ge_vulkan_draw_call.cpp
-    src/ge_vulkan_dynamic_buffer.cpp
-    src/ge_vulkan_dynamic_spm_buffer.cpp
-    src/ge_vulkan_environment_map.cpp
-    src/ge_vulkan_fbo_texture.cpp
-    src/ge_vulkan_features.cpp
-    src/ge_vulkan_hiz_depth.cpp
-    src/ge_vulkan_light_handler.cpp
-    src/ge_vulkan_mesh_cache.cpp
-    src/ge_vulkan_mesh_scene_node.cpp
-    src/ge_vulkan_scene_manager.cpp
-    src/ge_vulkan_shader_manager.cpp
-    src/ge_vulkan_skybox_renderer.cpp
-    src/ge_vulkan_texture.cpp
-    src/ge_vulkan_texture_descriptor.cpp
     src/ge_gl_texture.cpp
     src/ge_spm.cpp
     src/ge_spm_buffer.cpp
 )
 
+if(NOT EMSCRIPTEN)
+    set(GE_SOURCES ${GE_SOURCES}
+        src/ge_vma.cpp
+        src/ge_vulkan_2d_renderer.cpp
+        src/ge_vulkan_array_texture.cpp
+        src/ge_vulkan_animated_mesh_scene_node.cpp
+        src/ge_vulkan_attachment_texture.cpp
+        src/ge_vulkan_billboard_buffer.cpp
+        src/ge_vulkan_camera_scene_node.cpp
+        src/ge_vulkan_command_loader.cpp
+        src/ge_vulkan_deferred_fbo.cpp
+        src/ge_vulkan_driver.cpp
+        src/ge_vulkan_draw_call.cpp
+        src/ge_vulkan_dynamic_buffer.cpp
+        src/ge_vulkan_dynamic_spm_buffer.cpp
+        src/ge_vulkan_environment_map.cpp
+        src/ge_vulkan_fbo_texture.cpp
+        src/ge_vulkan_features.cpp
+        src/ge_vulkan_hiz_depth.cpp
+        src/ge_vulkan_light_handler.cpp
+        src/ge_vulkan_mesh_cache.cpp
+        src/ge_vulkan_mesh_scene_node.cpp
+        src/ge_vulkan_scene_manager.cpp
+        src/ge_vulkan_shader_manager.cpp
+        src/ge_vulkan_skybox_renderer.cpp
+        src/ge_vulkan_texture.cpp
+        src/ge_vulkan_texture_descriptor.cpp
+    )
+endif()
+
 if(NOT APPLE OR DLOPEN_MOLTENVK)
-    set(GE_SOURCES ${GE_SOURCES} src/vulkan.c)
+    if(NOT EMSCRIPTEN)
+        set(GE_SOURCES ${GE_SOURCES} src/vulkan.c)
+    endif()
 endif()
 
 option(BC7_ISPC "Enable BC7 (BPTC) support (requires ispc and cmake >= 3.19)" OFF)

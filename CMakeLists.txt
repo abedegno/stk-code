@@ -86,6 +86,74 @@ if (IOS)
     option(USE_GLES2 "Use OpenGL ES2 renderer" ON)
 endif()
 
+if(EMSCRIPTEN)
+    # Locate prebuilt deps: prefer CMAKE_FIND_ROOT_PATH if already set by emcmake/make.sh,
+    # otherwise fall back to emscripten/deps/install/ inside the source tree.
+    if(NOT CMAKE_FIND_ROOT_PATH)
+        set(CMAKE_FIND_ROOT_PATH "${CMAKE_SOURCE_DIR}/emscripten/deps/install")
+    endif()
+    set(_EMSC_PREFIX "${CMAKE_FIND_ROOT_PATH}")
+
+    set(JPEG_INCLUDE_DIR "${_EMSC_PREFIX}/include")
+    set(JPEG_LIBRARY "${_EMSC_PREFIX}/lib/libjpeg.a")
+
+    set(PNG_PNG_INCLUDE_DIR "${_EMSC_PREFIX}/include/")
+    set(PNG_LIBRARY "${_EMSC_PREFIX}/lib/libpng16.a")
+
+    set(ZLIB_INCLUDE_DIR "${_EMSC_PREFIX}/include")
+    set(ZLIB_LIBRARY "${_EMSC_PREFIX}/lib/libz.a")
+
+    set(HARFBUZZ_INCLUDEDIR "${_EMSC_PREFIX}/include/")
+    set(HARFBUZZ_LIBRARY "${_EMSC_PREFIX}/lib/libharfbuzz.a")
+
+    set(CURL_INCLUDE_DIR "${_EMSC_PREFIX}/include/")
+    set(CURL_LIBRARY "${_EMSC_PREFIX}/lib/libcurl.a")
+
+    set(OPENSSL_INCLUDE_DIR "${_EMSC_PREFIX}/include/")
+    set(OPENSSL_CRYPTO_LIBRARY "${_EMSC_PREFIX}/lib/libssl.a")
+
+    set(OGGVORBIS_OGG_INCLUDE_DIR "${_EMSC_PREFIX}/include/")
+    set(OGGVORBIS_VORBIS_INCLUDE_DIR "${_EMSC_PREFIX}/include/")
+    set(OGGVORBIS_OGG_LIBRARY "${_EMSC_PREFIX}/lib/libogg.a")
+    set(OGGVORBIS_VORBISFILE_LIBRARY "${_EMSC_PREFIX}/lib/libvorbisfile.a")
+    set(OGGVORBIS_VORBIS_LIBRARY "${_EMSC_PREFIX}/lib/libvorbis.a")
+
+    set(OPUS_INCLUDE_DIR "${_EMSC_PREFIX}/include/opus")
+    set(OPUS_LIBRARY "${_EMSC_PREFIX}/lib/libopus.a")
+    set(OPUSFILE_LIBRARY "${_EMSC_PREFIX}/lib/libopusfile.a")
+    set(OPUSFILE_INCLUDEDIR "${_EMSC_PREFIX}/include/opus")
+    include_directories(BEFORE "${_EMSC_PREFIX}/include/opus")
+
+    # SDL2 is provided by Emscripten's port system via -sUSE_SDL=2
+    set(SDL2_LIBRARY "-sUSE_SDL=2" CACHE STRING "SDL2 handled by Emscripten port" FORCE)
+    set(SDL2_INCLUDEDIR "${_EMSC_PREFIX}/include" CACHE STRING "" FORCE)
+
+    set(USE_WIIUSE 0)
+    set(USE_DNS_C 1)
+    set(USE_GLES2 1)
+    set(NO_SHADERC on)
+    set(BUILD_RECORDER 0)
+    set(HAVE_OPUS ON)
+
+    add_definitions(-DNO_IRR_COMPILE_WITH_X11_)
+    add_definitions(-DNO_IRR_COMPILE_WITH_WAYLAND_DEVICE_)
+    add_definitions(-DNO_IRR_COMPILE_WITH_DIRECT3D_9_)
+    add_definitions(-DNO_IRR_COMPILE_WITH_VULKAN_)
+    add_definitions(-DNO_IRR_COMPILE_WITH_OPENGL_)
+    add_definitions(-D_IRR_COMPILE_WITH_OGLES2_)
+    add_definitions(-DDISABLE_RPC)
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -sUSE_SDL=2 -fwasm-exceptions -sSUPPORT_LONGJMP=wasm -pthread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -sUSE_SDL=2 -fwasm-exceptions -sSUPPORT_LONGJMP=wasm -pthread")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${_EMSC_PREFIX}/lib/ -sUSE_SDL=2 -sENVIRONMENT=web,worker -lidbfs.js -lwebsocket.js -sASSERTIONS=1 -sSTACK_SIZE=30000000 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES2 -sFULL_ES3 -sUSE_SDL_MIXER=2 -lopenal -sINITIAL_MEMORY=768MB -sWASM_BIGINT -lcrypto -fwasm-exceptions -pthread -sSUPPORT_LONGJMP=wasm -sPTHREAD_POOL_SIZE=16")
+
+    if(CMAKE_BUILD_TYPE MATCHES Debug)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --profiling")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    endif()
+endif()
+
 if((UNIX AND NOT APPLE) AND NOT SERVER_ONLY)
     if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") OR 
        (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") OR
@@ -204,7 +272,7 @@ if(UNIX OR MINGW)
     endif()
 endif()
 
-if(UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     find_package(PkgConfig REQUIRED)
 
     if(NOT PKGCONFIG_FOUND)
@@ -338,21 +406,27 @@ else()
 endif()
 
 if (NOT SERVER_ONLY)
-    # SDL2
-    find_library(SDL2_LIBRARY NAMES SDL2 libSDL2)
-    find_path(SDL2_INCLUDEDIR NAMES SDL.h PATH_SUFFIXES SDL2 include/SDL2 include PATHS)
-    if (NOT SDL2_LIBRARY OR NOT SDL2_INCLUDEDIR)
-        message(FATAL_ERROR "SDL2 not found. "
-            "SDL2 is required to handle gamepad in SuperTuxKart.")
+    if(NOT EMSCRIPTEN)
+        # SDL2
+        find_library(SDL2_LIBRARY NAMES SDL2 libSDL2)
+        find_path(SDL2_INCLUDEDIR NAMES SDL.h PATH_SUFFIXES SDL2 include/SDL2 include PATHS)
+        if (NOT SDL2_LIBRARY OR NOT SDL2_INCLUDEDIR)
+            message(FATAL_ERROR "SDL2 not found. "
+                "SDL2 is required to handle gamepad in SuperTuxKart.")
+        else()
+            include_directories("${SDL2_INCLUDEDIR}")
+            MESSAGE(STATUS "Use system SDL2: ${SDL2_LIBRARY}")
+        endif()
+        # DirectFB. Necessary if system SDL2 is built with DirectFB support.
+        find_path(DIRECTFB_INCLUDEDIR NAMES directfb.h directfb++.h PATH_SUFFIXES directfb include/directfb include PATHS)
+        if (DIRECTFB_INCLUDEDIR)
+            include_directories("${DIRECTFB_INCLUDEDIR}")
+            message(STATUS "Adding DirectFB include directories for DirectFB support in SDL2")
+        endif()
     else()
+        # SDL2 on Emscripten is provided via -sUSE_SDL=2 port; set include dir.
         include_directories("${SDL2_INCLUDEDIR}")
-        MESSAGE(STATUS "Use system SDL2: ${SDL2_LIBRARY}")
-    endif()
-    # DirectFB. Necessary if system SDL2 is built with DirectFB support.
-    find_path(DIRECTFB_INCLUDEDIR NAMES directfb.h directfb++.h PATH_SUFFIXES directfb include/directfb include PATHS)
-    if (DIRECTFB_INCLUDEDIR)
-        include_directories("${DIRECTFB_INCLUDEDIR}")
-        message(STATUS "Adding DirectFB include directories for DirectFB support in SDL2")
+        MESSAGE(STATUS "SDL2: Emscripten port via -sUSE_SDL=2")
     endif()
 endif()
 
@@ -429,6 +503,9 @@ if(NOT SERVER_ONLY)
         add_definitions(-DAL_LIBTYPE_STATIC)
         add_subdirectory("${PROJECT_SOURCE_DIR}/lib/mojoal")
         include_directories(BEFORE "${PROJECT_SOURCE_DIR}/lib/mojoal")
+    elseif(EMSCRIPTEN)
+        # OpenAL on Emscripten is provided by the runtime via -lopenal (already in linker flags)
+        MESSAGE(STATUS "OpenAL: Emscripten built-in via -lopenal")
     else()
         find_package(OpenAL REQUIRED)
         # Unclear why this happens, but on switch OPENAL_LIBRARY never set!
@@ -442,7 +519,14 @@ if(NOT SERVER_ONLY)
     endif()
 
     # OggVorbis
-    find_package(OggVorbis REQUIRED)
+    if(EMSCRIPTEN)
+        # Variables already set in the EMSCRIPTEN platform block above;
+        # assemble the aggregate variables that FindOggVorbis would normally set.
+        set(OGGVORBIS_INCLUDE_DIRS ${OGGVORBIS_OGG_INCLUDE_DIR} ${OGGVORBIS_VORBIS_INCLUDE_DIR})
+        set(OGGVORBIS_LIBRARIES ${OGGVORBIS_OGG_LIBRARY} ${OGGVORBIS_VORBIS_LIBRARY} ${OGGVORBIS_VORBISFILE_LIBRARY})
+    else()
+        find_package(OggVorbis REQUIRED)
+    endif()
     include_directories(${OGGVORBIS_INCLUDE_DIRS})
 
     # Opus (optional)
@@ -682,32 +766,41 @@ endif()
 
 # OpenSSL or MbedTLS
 if (NOT USE_APPLE_NETWORK_LIBRARIES)
-    # 1.0.1d for compatible AES GCM handling
-    SET(OPENSSL_MINIMUM_VERSION "1.0.1d")
-
-    find_path(MBEDTLS_INCLUDE_DIRS mbedtls/version.h)
-    find_library(MBEDCRYPTO_LIBRARY NAMES mbedcrypto libmbedcrypto)
-
-    if (NOT MBEDCRYPTO_LIBRARY OR NOT MBEDTLS_INCLUDE_DIRS OR USE_CRYPTO_OPENSSL)
+    if(EMSCRIPTEN)
+        # On Emscripten, crypto is provided by the -lcrypto flag already in linker flags.
+        # The OPENSSL_CRYPTO_LIBRARY is pre-set; just define the expected macro.
         set(USE_CRYPTO_OPENSSL ON)
-        find_package(OpenSSL REQUIRED)
-
-        if(${OPENSSL_VERSION} VERSION_LESS ${OPENSSL_MINIMUM_VERSION} OR
-            (${OPENSSL_VERSION} VERSION_EQUAL ${OPENSSL_MINIMUM_VERSION} AND ${OPENSSL_VERSION} STRLESS ${OPENSSL_MINIMUM_VERSION}))
-            message(FATAL_ERROR "OpenSSL version found (${OPENSSL_VERSION}) is less then the minimum required (${OPENSSL_MINIMUM_VERSION}), aborting.")
-        endif()
-        include_directories(${OpenSSL_INCLUDE_DIRS})
-    else()
-        set(USE_CRYPTO_OPENSSL OFF)
-        include_directories(${MBEDTLS_INCLUDE_DIRS})
-    endif()
-
-    if (USE_CRYPTO_OPENSSL)
-        message(STATUS "OpenSSL will be used for cryptography in STK.")
         add_definitions(-DENABLE_CRYPTO_OPENSSL)
+        include_directories("${OPENSSL_INCLUDE_DIR}")
+        message(STATUS "OpenSSL will be used for cryptography in STK (Emscripten).")
     else()
-        message(STATUS "MbedTLS will be used for cryptography in STK.")
-        add_definitions(-DENABLE_CRYPTO_MBEDTLS)
+        # 1.0.1d for compatible AES GCM handling
+        SET(OPENSSL_MINIMUM_VERSION "1.0.1d")
+
+        find_path(MBEDTLS_INCLUDE_DIRS mbedtls/version.h)
+        find_library(MBEDCRYPTO_LIBRARY NAMES mbedcrypto libmbedcrypto)
+
+        if (NOT MBEDCRYPTO_LIBRARY OR NOT MBEDTLS_INCLUDE_DIRS OR USE_CRYPTO_OPENSSL)
+            set(USE_CRYPTO_OPENSSL ON)
+            find_package(OpenSSL REQUIRED)
+
+            if(${OPENSSL_VERSION} VERSION_LESS ${OPENSSL_MINIMUM_VERSION} OR
+                (${OPENSSL_VERSION} VERSION_EQUAL ${OPENSSL_MINIMUM_VERSION} AND ${OPENSSL_VERSION} STRLESS ${OPENSSL_MINIMUM_VERSION}))
+                message(FATAL_ERROR "OpenSSL version found (${OPENSSL_VERSION}) is less then the minimum required (${OPENSSL_MINIMUM_VERSION}), aborting.")
+            endif()
+            include_directories(${OpenSSL_INCLUDE_DIRS})
+        else()
+            set(USE_CRYPTO_OPENSSL OFF)
+            include_directories(${MBEDTLS_INCLUDE_DIRS})
+        endif()
+
+        if (USE_CRYPTO_OPENSSL)
+            message(STATUS "OpenSSL will be used for cryptography in STK.")
+            add_definitions(-DENABLE_CRYPTO_OPENSSL)
+        else()
+            message(STATUS "MbedTLS will be used for cryptography in STK.")
+            add_definitions(-DENABLE_CRYPTO_MBEDTLS)
+        endif()
     endif()
 endif()
 
@@ -757,9 +850,10 @@ endif()
 if(NOT SERVER_ONLY)
     if (USE_MOJOAL)
         target_link_libraries(supertuxkart mojoal ${LIBSAMPLERATE_LIBRARY})
-    else()
+    elseif(NOT EMSCRIPTEN)
         target_link_libraries(supertuxkart ${OPENAL_LIBRARY})
     endif()
+    # On Emscripten, OpenAL is linked via -lopenal already in CMAKE_EXE_LINKER_FLAGS
 endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
@@ -787,7 +881,7 @@ elseif(NOT USE_APPLE_NETWORK_LIBRARIES)
 endif()
 
 if(NOT SERVER_ONLY)
-    if (APPLE AND NOT DLOPEN_MOLTENVK)
+    if (APPLE AND NOT DLOPEN_MOLTENVK AND NOT EMSCRIPTEN)
         find_library(MOLTENVK_LIBRARY NAMES MoltenVK libMoltenVK REQUIRED)
         target_link_libraries(supertuxkart "-framework Metal -weak_framework IOSurface -framework QuartzCore ${MOLTENVK_LIBRARY}")
     endif()
@@ -816,7 +910,7 @@ if(NOT SERVER_ONLY)
         ${SDL2_LIBRARY}
         tinygettext)
     if(HAVE_OPUS)
-        target_link_libraries(supertuxkart ${OPUSFILE_LIBRARY})
+        target_link_libraries(supertuxkart ${OPUSFILE_LIBRARY} ${OPUS_LIBRARY})
     endif()
     if (NOT NO_SHADERC)
         target_link_libraries(supertuxkart ${SHADERC_LIBRARY})
@@ -918,7 +1012,7 @@ endif()
 
 
 # Find LibGamerzilla library or build it if missing
-if (NOT APPLE)
+if (NOT APPLE AND NOT EMSCRIPTEN)
     include(FindPkgConfig)
     pkg_search_module(GAMERZILLA OPTIONAL gamerzilla)
 
