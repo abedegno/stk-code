@@ -42,7 +42,9 @@
 
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
+#endif
 #include "graphics/stk_tex_manager.hpp"
 #include "utils/stk_process.hpp"
 #endif
@@ -711,7 +713,7 @@ void KartPropertiesManager::onDemandLoadKartTextures(
                                         const std::set<std::string>& kart_list,
                                                             bool unload_unused)
 {
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     if (STKProcess::getType() != PT_MAIN || kart_list.empty())
         return;
 

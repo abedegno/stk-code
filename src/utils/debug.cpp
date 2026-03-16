@@ -58,9 +58,13 @@
 #include "main_loop.hpp"
 #include "replay/replay_recorder.hpp"
 #include "scriptengine/script_engine.hpp"
-#include "states_screens/dialogs/debug_message_dialog.hpp"
 #include "states_screens/dialogs/debug_slider.hpp"
 #include "states_screens/dialogs/general_text_field_dialog.hpp"
+#ifdef __EMSCRIPTEN__
+#include "states_screens/dialogs/tutorial_message_dialog.hpp"
+#else
+#include "states_screens/dialogs/debug_message_dialog.hpp"
+#endif
 #include "tracks/track_manager.hpp"
 #include "utils/constants.hpp"
 #include "utils/log.hpp"
@@ -74,7 +78,9 @@
 #include <cmath>
 #ifndef SERVER_ONLY
 #include <ge_main.hpp>
+#ifndef __EMSCRIPTEN__
 #include <ge_vulkan_driver.hpp>
+#endif
 #endif
 
 using namespace irr;
@@ -327,10 +333,12 @@ bool handleContextMenuAction(s32 cmd_id)
 #ifndef SERVER_ONLY
     {
         Log::info("Debug", "Reloading shaders...");
+#ifndef __EMSCRIPTEN__
         GE::GEVulkanDriver* vk = GE::getVKDriver();
         if (vk)
             vk->reloadShaders();
         else
+#endif
         {
             SP::SPShaderManager::get()->unloadAll();
             ShaderBase::killShaders();
@@ -389,7 +397,7 @@ bool handleContextMenuAction(s32 cmd_id)
         break;
     }
     case DEBUG_GE_PBR:
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     {
         GE::GEVulkanDriver* vk = GE::getVKDriver();
         if (vk)
@@ -398,11 +406,11 @@ bool handleContextMenuAction(s32 cmd_id)
             GE::getGEConfig()->m_pbr = UserConfigParams::m_dynamic_lights;
             vk->updateDriver(false/*scale_changed*/, true/*pbr_changed*/);
         }
-        break;
     }
 #endif
+        break;
     case DEBUG_GE_IBL:
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     {
         GE::GEVulkanDriver* vk = GE::getVKDriver();
         if (vk)
@@ -412,11 +420,11 @@ bool handleContextMenuAction(s32 cmd_id)
             vk->updateDriver(false/*scale_changed*/, false/*pbr_changed*/,
                 true/*ibl_changed*/);
         }
-        break;
     }
 #endif
+        break;
     case DEBUG_GE_SSR:
-#ifndef SERVER_ONLY
+#if !defined(SERVER_ONLY) && !defined(__EMSCRIPTEN__)
     {
         GE::GEVulkanDriver* vk = GE::getVKDriver();
         if (vk)
@@ -427,9 +435,9 @@ bool handleContextMenuAction(s32 cmd_id)
                 GE::GSSRT_COUNT);
             vk->updateDriver(true/*scale_changed*/);
         }
-        break;
     }
 #endif
+        break;
     case DEBUG_SP_RESET:
         irr_driver->resetDebugModes();
         if (physics)
@@ -1106,6 +1114,29 @@ bool handleContextMenuAction(s32 cmd_id)
         irr_driver->setRecording(false);
         break;
     case DEBUG_HELP:
+#ifdef __EMSCRIPTEN__
+        new TutorialMessageDialog(L"Debug keyboard shortcuts (can conflict with user-defined shortcuts):\n"
+                            "* <~> - Show this help dialog | + <Ctrl> - Adjust lights | + <Shift> - Adjust visuals\n"
+                            "* <F1> - Anchor powerup | + <Ctrl> - Normal view | + <Shift> - Bomb attachment\n"
+                            "* <F2> - Basketball powerup | + <Ctrl> - First person view | + <Shift> - Anchor attachment\n"
+                            "* <F3> - Bowling ball powerup | + <Ctrl> - Top view | + <Shift> - Parachute attachment\n"
+                            "* <F4> - Bubblegum powerup | + <Ctrl> - Behind wheel view | + <Shift> - Flatten kart\n"
+                            "* <F5> - Cake powerup | + <Ctrl> - Behind kart view | + <Shift> - Send plunger to kart front\n"
+                            "* <F6> - Parachute powerup | + <Ctrl> - Right side of kart view | + <Shift> - Explode kart\n"
+                            "* <F7> - Plunger powerup | + <Ctrl> - Left side of kart view | + <Shift> - Scripting console\n"
+                            "* <F8> - Swatter powerup | + <Ctrl> - Front of kart view | + <Shift> - Texture console\n"
+                            "* <F9> - Switch powerup | + <Ctrl> - Kart number slider | + <Shift> - Run cutscene(s)\n"
+                            "* <F10> - Zipper powerup | + <Ctrl> - Powerup amount slider | + <Shift> - Toggle GUI\n"
+                            "* <F11> - Save replay | + <Ctrl> - Save history | + <Shift> - Dump RTT\n"
+                            "* <F12> - Show FPS | + <Ctrl> - Show other karts' powerups | + <Shift> - Show soccer player list\n"
+                            "* <Insert> - Overfilled nitro\n"
+                            "* <Delete> - Clear kart items\n"
+                            "* <Home> - First kart\n"
+                            "* <End> - Last kart\n"
+                            "* <Page Up> - Previous kart\n"
+                            "* <Page Down> - Next kart"
+                            , World::getWorld() && World::getWorld()->isNetworkWorld() ? false : true);
+#else
         // If the debug help dialog is already active, the debug help input toggles it off
         if (GUIEngine::ModalDialog::isADialogActive()
             && dynamic_cast<DebugMessageDialog*>(GUIEngine::ModalDialog::getCurrent()))
@@ -1134,6 +1165,7 @@ bool handleContextMenuAction(s32 cmd_id)
                             "* <Page Up> - Previous kart  |  <Page Down> - Next kart\n"
                             , World::getWorld() && World::getWorld()->isNetworkWorld() ? false : true);
         }
+#endif
         break;
     }
     return false;
